@@ -21,12 +21,14 @@ kotlin {
     val commonMain by getting {
       dependencies {
         implementation(libs.bundles.coroutines)
+        implementation(libs.kotlinResult)
       }
     }
 
     val commonTest by getting {
       dependencies {
         implementation(libs.bundles.koTestCommon)
+        implementation(libs.turbine)
       }
     }
 
