@@ -1,11 +1,11 @@
 package ru.kode.remo
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.cancel
 
 /**
  * Данный класс предоставляет контекст для асинхронного запуска задач (jobs) с возможностью наблюдения за
@@ -41,7 +41,6 @@ import kotlinx.coroutines.isActive
  * }
  *
  * fun main(val model: UserListModel) {
- *   model.start()
  *   launch {
  *     model.fetch.jobFlow.state.collect { println("state: $it" }
  *     model.fetch.jobFlow.errors().collect { println("error: $it" }
@@ -50,6 +49,7 @@ import kotlinx.coroutines.isActive
  *   launch {
  *     model.fetch.start(SortConfiguration.Ascending)
  *   }.join()
+ *   model.dispose()
  * }
  * ```
  *
@@ -214,9 +214,9 @@ import kotlinx.coroutines.isActive
  *
  * ## Lifecycle
  *
- * У каждой [ReactiveModel] есть жизненный цикл, работа с которым огранизована через функцию `start()`. Вызов этой
- * функции инициализирует внутренний `CoroutineScope` и возвращает `Job`, с помощью которого работу [ReactiveModel]
- * можно "завершить". При вызове `job.cancel()` будет закрыт внутренний `CoroutineScope` модели
+ * У каждой [ReactiveModel] есть жизненный цикл. Он начинается с создания модели, которое инициализирует
+ * внутренний `CoroutineScope`. Чтобы корректно завершить работу модели и закрыть этот scope, освободить остальные
+ * ресурсы, необходимо вызывать метод [ReactiveModel.dispose].
  *
  * ## Использование в не-декларативном окружении
  *
@@ -233,33 +233,20 @@ import kotlinx.coroutines.isActive
  * ```
  */
 public open class ReactiveModel(
-  private val logError: (() -> Throwable) -> Unit = { it().printStackTrace() }
+  /**
+   * Dispatcher, который по умолчанию используется для выполнения Job/Task
+   */
+  dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
-  private var _scope: CoroutineScope? = null
-  protected val scope: CoroutineScope get() {
-    return _scope ?: error("scope not available. Possible reason: start() was not called")
-  }
-  protected val scopeSafe: CoroutineScope? get() = _scope
+  private val handler = CoroutineExceptionHandler { _, e -> e.printStackTrace() }
+  protected val scope: CoroutineScope = CoroutineScope(dispatcher + SupervisorJob() + handler)
 
   /**
-   * Выполняет старт и инициализацию. Возвращает `Job`, вызвав `cancel()` у которого можно завершить работу модели
-   * и освободить её ресурсы
+   * Завершает работу и освобождает все ресурсы, отменяет все запущенные job-ы
    */
-  public fun start(): Job {
-    if (_scope?.isActive == true) {
-      error("model \"${this::class.simpleName}\" is already started")
-    }
-    val handler = CoroutineExceptionHandler { _, e -> logError { e } }
-    _scope = CoroutineScope(Dispatchers.Default + SupervisorJob() + handler)
-    onPostStart()
-    return _scope!!.coroutineContext[Job] ?: error("no job in model scope")
+  public fun dispose() {
+    scope.cancel()
   }
-
-  /**
-   * Будет вызвана сразу после успешного [start] модели.
-   * В этой функции уже можно использовать [scope] и стартовать корутины, job-ы.
-   */
-  protected open fun onPostStart(): Unit = Unit
 
   /**
    * Запускает [body] внутри [scope] модели

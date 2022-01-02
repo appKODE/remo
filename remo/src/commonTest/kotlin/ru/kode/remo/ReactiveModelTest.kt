@@ -1,35 +1,21 @@
 package ru.kode.remo
 
 import app.cash.turbine.test
-import io.kotest.assertions.throwables.shouldThrowUnit
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 
 class ReactiveModelTest : ShouldSpec({
-  var job: Job? = null
+  var model: ReactiveModel? = null
 
   afterEach {
-    job?.cancelAndJoin()
-  }
-
-  should("throw when calling start() after started") {
-    val sut = object : ReactiveModel() {}
-    job = sut.start()
-
-    val exception = shouldThrowUnit<IllegalStateException> {
-      sut.start()
-    }
-    exception.message shouldContain "already started"
+    model?.dispose()
   }
 
   should("not conflate results") {
     val sut = object : ReactiveModel() {
       val foo = task { -> 33 }
-    }.apply { job = start() }
+    }.also { model = it }
 
     sut.foo.jobFlow.results().test {
       sut.foo.start()
@@ -43,7 +29,7 @@ class ReactiveModelTest : ShouldSpec({
   should("not conflate errors") {
     val sut = object : ReactiveModel() {
       val foo = task<Unit> { throw ExceptionWithEquals("i am an error") }
-    }.apply { job = start() }
+    }.also { model = it }
 
     sut.foo.jobFlow.errors(replayLast = true).test {
       sut.foo.start()
@@ -57,7 +43,7 @@ class ReactiveModelTest : ShouldSpec({
   should("late subscriber receives the last result") {
     val sut = object : ReactiveModel() {
       val foo = task { i: Int -> i }
-    }.apply { job = start() }
+    }.also { model = it }
 
     sut.foo.start(33)
     sut.foo.jobFlow.results().first() // await result
