@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 /**
  * Данный класс предоставляет контекст для асинхронного запуска задач (jobs) с возможностью наблюдения за
@@ -238,7 +240,25 @@ public open class ReactiveModel(
    */
   dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
-  private val handler = CoroutineExceptionHandler { _, e -> e.printStackTrace() }
+  private val _uncaughtExceptions = MutableSharedFlow<Throwable>(replay = 1, extraBufferCapacity = 10)
+  /**
+   * Поток неотловленных ошибок, которые произошли вне запуска Job/Task.
+   * Например, при выполнении `scope.launch()`.
+   *
+   * При подписке будет испущена последняя полученная ошибка, если таковая имеется.
+   *
+   * Обратите внимание, что все ошибки в рамках запуска тасков или работы Job в [WatchContext] не попадут сюда,
+   * они будут своевременно отловлены и запущены в [JobFlow.errors].
+   *
+   * Обычно стоит подписаться на этот поток и как минимум отображать в логах поступающие сюда ошибки.
+   */
+  public val uncaughtExceptions: Flow<Throwable> = _uncaughtExceptions
+  private val handler = CoroutineExceptionHandler { _, e ->
+    if (!_uncaughtExceptions.tryEmit(e)) {
+      println("failed to emit an uncaught error, printing to stdout")
+      e.printStackTrace()
+    }
+  }
   protected val scope: CoroutineScope = CoroutineScope(dispatcher + SupervisorJob() + handler)
 
   /**

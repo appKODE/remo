@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class ReactiveModelTest : ShouldSpec({
   var model: ReactiveModel? = null
@@ -54,6 +55,54 @@ class ReactiveModelTest : ShouldSpec({
       awaitItem() shouldBe 44
       cancelAndConsumeRemainingEvents()
     }
+  }
+
+  should("emit an uncaught error") {
+    val sut = object : ReactiveModel() {
+      fun produceError1() {
+        scope.launch {
+          throw RuntimeException("error1")
+        }
+      }
+      fun produceError2() {
+        scope.launch {
+          throw RuntimeException("error2")
+        }
+      }
+    }.also { model = it }
+
+    sut.uncaughtExceptions.test {
+      sut.produceError1()
+      awaitItem().message shouldBe "error1"
+      sut.produceError2()
+      awaitItem().message shouldBe "error2"
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  should("emit last uncaught error on subscription") {
+    val sut = object : ReactiveModel() {
+      fun produceError1() {
+        scope.launch {
+          throw RuntimeException("error1")
+        }
+      }
+      fun produceError2() {
+        scope.launch {
+          throw RuntimeException("error2")
+        }
+      }
+    }.also { model = it }
+
+    sut.uncaughtExceptions.test {
+      sut.produceError1()
+      awaitItem()
+      sut.produceError2()
+      awaitItem()
+      cancelAndIgnoreRemainingEvents()
+    }
+
+    sut.uncaughtExceptions.first().message shouldBe "error2"
   }
 })
 
