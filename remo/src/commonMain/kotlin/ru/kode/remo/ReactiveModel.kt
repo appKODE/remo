@@ -59,7 +59,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
  *
  * В [ReactiveModel] используется "jobs", которые представлены `suspend`-функциями, а также [WatchContext], которые
  * предоставляют функционал запуска job-ов в специальном скоупе, который следит за процессом их выполнения, и рапортует
- * подписчикам об изменении хода выполнения через [WatchContext.state], [WatchContext.results], [WatchContext.errors].
+ * подписчикам об изменении хода выполнения через [WatchContext.state], [WatchContext.successResults], [WatchContext.errors].
  * Каждое из этих свойств представляет собой [kotlinx.coroutines.flow.Flow].
  *
  * Класс [WatchContext] предназначен для использования внутри [ReactiveModel], для наблюдателей из внешнего мира

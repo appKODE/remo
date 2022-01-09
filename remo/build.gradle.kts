@@ -21,7 +21,7 @@ kotlin {
     val commonMain by getting {
       dependencies {
         implementation(libs.bundles.coroutines)
-        implementation(libs.kotlinResult)
+        api(libs.kotlinResult)
       }
     }
 

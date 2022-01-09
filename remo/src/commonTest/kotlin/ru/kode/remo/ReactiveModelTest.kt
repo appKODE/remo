@@ -18,7 +18,7 @@ class ReactiveModelTest : ShouldSpec({
       val foo = task { -> 33 }
     }.also { model = it }
 
-    sut.foo.jobFlow.results().test {
+    sut.foo.jobFlow.successResults().test {
       sut.foo.start()
       awaitItem() shouldBe 33
       sut.foo.start()
@@ -47,11 +47,11 @@ class ReactiveModelTest : ShouldSpec({
     }.also { model = it }
 
     sut.foo.start(33)
-    sut.foo.jobFlow.results().first() // await result
+    sut.foo.jobFlow.successResults().first() // await result
     sut.foo.start(44)
 
     // new subscriber
-    sut.foo.jobFlow.results().test {
+    sut.foo.jobFlow.successResults().test {
       awaitItem() shouldBe 44
       cancelAndConsumeRemainingEvents()
     }

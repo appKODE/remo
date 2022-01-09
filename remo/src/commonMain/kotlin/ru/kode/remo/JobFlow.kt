@@ -1,5 +1,6 @@
 package ru.kode.remo
 
+import com.github.michaelbull.result.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -13,11 +14,18 @@ public interface JobFlow<R> {
   public val state: StateFlow<JobState>
 
   /**
-   * Стрим результатов успешного выполнения задачи. Если [replayLast] будет
+   * Стрим результатов выполнения задачи. Если [replayLast] будет
    * установлен в `false`, то будут приходить только результаты выполнения _после_ подписки,
    * иначе будет сразу же отправлен последний успешный результат (если таковой был)
    */
-  public fun results(replayLast: Boolean = true): Flow<R>
+  public fun results(replayLast: Boolean = true): Flow<Result<R, Throwable>>
+
+  /**
+   * Стрим успешных результатов успешного выполнения задачи. Если [replayLast] будет
+   * установлен в `false`, то будут приходить только результаты выполнения _после_ подписки,
+   * иначе будет сразу же отправлен последний успешный результат (если таковой был)
+   */
+  public fun successResults(replayLast: Boolean = true): Flow<R>
 
   /**
    * Стрим ошибок выполнения задачи. Если [replayLast] будет

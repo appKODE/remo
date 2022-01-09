@@ -63,7 +63,7 @@ public class Task3<in P1, in P2, in P3, R>(
 public suspend fun <R> Task0<R>.startAndAwait(): Result<R, Throwable> {
   this.start()
   return combine(
-    this.jobFlow.results(replayLast = false).onStart<R?> { emit(null) },
+    this.jobFlow.successResults(replayLast = false).onStart<R?> { emit(null) },
     this.jobFlow.errors(replayLast = false).onStart<Throwable?> { emit(null) },
     transform = { result, error -> result to error },
   ).firstResult()
@@ -75,7 +75,7 @@ public suspend fun <R> Task0<R>.startAndAwait(): Result<R, Throwable> {
 public suspend fun <P, R> Task1<P, R>.startAndAwait(parameter: P): Result<R, Throwable> {
   this.start(parameter)
   return combine(
-    this.jobFlow.results(replayLast = false).onStart<R?> { emit(null) },
+    this.jobFlow.successResults(replayLast = false).onStart<R?> { emit(null) },
     this.jobFlow.errors(replayLast = false).onStart<Throwable?> { emit(null) },
     transform = { result, error -> result to error },
   ).firstResult()
@@ -87,7 +87,7 @@ public suspend fun <P, R> Task1<P, R>.startAndAwait(parameter: P): Result<R, Thr
 public suspend fun <P1, P2, R> Task2<P1, P2, R>.startAndAwait(parameter1: P1, parameter2: P2): Result<R, Throwable> {
   this.start(parameter1, parameter2)
   return combine(
-    this.jobFlow.results(replayLast = false).onStart<R?> { emit(null) },
+    this.jobFlow.successResults(replayLast = false).onStart<R?> { emit(null) },
     this.jobFlow.errors(replayLast = false).onStart<Throwable?> { emit(null) },
     transform = { result, error -> result to error },
   ).firstResult()
@@ -103,7 +103,7 @@ public suspend fun <P1, P2, P3, R> Task3<P1, P2, P3, R>.startAndAwait(
 ): Result<R, Throwable> {
   this.start(parameter1, parameter2, parameter3)
   return combine(
-    this.jobFlow.results(replayLast = false).onStart<R?> { emit(null) },
+    this.jobFlow.successResults(replayLast = false).onStart<R?> { emit(null) },
     this.jobFlow.errors(replayLast = false).onStart<Throwable?> { emit(null) },
     transform = { result, error -> result to error },
   ).firstResult()
