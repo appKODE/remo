@@ -1,8 +1,10 @@
 package ru.kode.remo
 
 import app.cash.turbine.test
+import com.github.michaelbull.result.Ok
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -48,6 +50,7 @@ class ReactiveModelTest : ShouldSpec({
 
     sut.foo.start(33)
     sut.foo.jobFlow.successResults().first() // await result
+    sut.foo.jobFlow.state.filter { it == JobState.Idle }.first()
     sut.foo.start(44)
 
     // new subscriber
@@ -103,6 +106,45 @@ class ReactiveModelTest : ShouldSpec({
     }
 
     sut.uncaughtExceptions.first().message shouldBe "error2"
+  }
+
+  should("emit result to existing subscribers when replayLast is false") {
+    val sut = object : ReactiveModel() {
+      val task = task { ->
+        "hello"
+      }
+    }.also { model = it }
+
+    sut.task.jobFlow.results(replayLast = false).test {
+      sut.task.start()
+      awaitItem() shouldBe Ok("hello")
+    }
+  }
+
+  should("emit success to existing subscribers when replayLast is false") {
+    val sut = object : ReactiveModel() {
+      val task = task { ->
+        "hello"
+      }
+    }.also { model = it }
+
+    sut.task.jobFlow.successResults(replayLast = false).test {
+      sut.task.start()
+      awaitItem() shouldBe "hello"
+    }
+  }
+
+  should("emit error to existing subscribers when replayLast is false") {
+    val sut = object : ReactiveModel() {
+      val task = task { ->
+        throw RuntimeException("hello")
+      }
+    }.also { model = it }
+
+    sut.task.jobFlow.errors(replayLast = false).test {
+      sut.task.start()
+      awaitItem().message shouldBe "hello"
+    }
   }
 })
 
