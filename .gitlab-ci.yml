@@ -1,0 +1,23 @@
+before_script:
+  - export GRADLE_USER_HOME=/cache/.gradle
+  # Gradle daemon can be enabled using a certain tricks (see TBI commit 872e4881773),
+  # but this uncovers a lot of bugs in kapt/gradle plugins, because for some reason
+  # daemons seem to be shared between different builds on the same runner.
+  # We are not the only ones who have problems with this, see:
+  # https://github.com/gradle/gradle/issues/5998
+  - export GRADLE_OPTS="-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx6g"
+  - chmod +x ./gradlew
+
+stages:
+  - build
+
+# assembles dev build
+default-build:
+  stage: build
+  except:
+    - tags
+    - schedules
+  tags:
+    - android-java11
+  script:
+    - ./gradlew spotlessCheck check
