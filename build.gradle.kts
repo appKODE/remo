@@ -52,21 +52,6 @@ subprojects {
     configure<PublishingExtension> {
       repositories {
         maven {
-          name = "MavenCentral"
-          val versionName: String by project
-          if (versionName.endsWith("SNAPSHOT")) {
-            setUrl("https://oss.sonatype.org/content/repositories/snapshots")
-          } else {
-            setUrl("https://oss.sonatype.org/service/local/staging/deploy/maven2")
-          }
-
-          credentials {
-            username = project.property("NEXUS_USERNAME")?.toString()
-            password = project.property("NEXUS_PASSWORD")?.toString()
-          }
-        }
-
-        maven {
           name = "Kode"
           val releaseRepoPath = project.property("kodeReleaseRepoPath")?.toString() ?: error("null release repo")
           val snapshotsRepoPath = project.property("kodeSnapshotsRepoPath")?.toString() ?: error("null snapshots repo")
