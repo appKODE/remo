@@ -2,23 +2,33 @@ package ru.kode.remo
 
 import app.cash.turbine.test
 import com.github.michaelbull.result.Ok
+import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 class ReactiveModelTest : ShouldSpec({
-  var model: ReactiveModel? = null
+  var testScope = CoroutineScope(Dispatchers.Default)
 
-  afterEach {
-    model?.dispose()
+  beforeEach {
+    testScope.cancel()
+    testScope = CoroutineScope(Dispatchers.Default)
   }
 
   should("not conflate results") {
     val sut = object : ReactiveModel() {
       val foo = task { -> 33 }
-    }.also { model = it }
+    }.also { it.start(testScope) }
 
     sut.foo.jobFlow.successResults().test {
       sut.foo.start()
@@ -32,7 +42,7 @@ class ReactiveModelTest : ShouldSpec({
   should("not conflate errors") {
     val sut = object : ReactiveModel() {
       val foo = task<Unit> { throw ExceptionWithEquals("i am an error") }
-    }.also { model = it }
+    }.also { it.start(testScope) }
 
     sut.foo.jobFlow.errors(replayLast = true).test {
       sut.foo.start()
@@ -46,7 +56,7 @@ class ReactiveModelTest : ShouldSpec({
   should("late subscriber receives the last result") {
     val sut = object : ReactiveModel() {
       val foo = task { i: Int -> i }
-    }.also { model = it }
+    }.also { it.start(testScope) }
 
     sut.foo.start(33)
     sut.foo.jobFlow.successResults().first() // await result
@@ -72,7 +82,7 @@ class ReactiveModelTest : ShouldSpec({
           throw RuntimeException("error2")
         }
       }
-    }.also { model = it }
+    }.also { it.start(testScope) }
 
     sut.uncaughtExceptions.test {
       sut.produceError1()
@@ -95,7 +105,7 @@ class ReactiveModelTest : ShouldSpec({
           throw RuntimeException("error2")
         }
       }
-    }.also { model = it }
+    }.also { it.start(testScope) }
 
     sut.uncaughtExceptions.test {
       sut.produceError1()
@@ -113,7 +123,7 @@ class ReactiveModelTest : ShouldSpec({
       val task = task { ->
         "hello"
       }
-    }.also { model = it }
+    }.also { it.start(testScope) }
 
     sut.task.jobFlow.results(replayLast = false).test {
       sut.task.start()
@@ -126,7 +136,7 @@ class ReactiveModelTest : ShouldSpec({
       val task = task { ->
         "hello"
       }
-    }.also { model = it }
+    }.also { it.start(testScope) }
 
     sut.task.jobFlow.successResults(replayLast = false).test {
       sut.task.start()
@@ -139,11 +149,28 @@ class ReactiveModelTest : ShouldSpec({
       val task = task { ->
         throw RuntimeException("hello")
       }
-    }.also { model = it }
+    }.also { it.start(testScope) }
 
     sut.task.jobFlow.errors(replayLast = false).test {
       sut.task.start()
       awaitItem().message shouldBe "hello"
+    }
+  }
+
+  should("cancel model when parentScope is cancelled") {
+    val sut = object : ReactiveModel() {
+      val task = task { ->
+        delay(10_000)
+      }
+    }
+    val job = sut.start(testScope)
+
+    sut.task.start()
+
+    testScope.cancel()
+    eventually(duration = 3.seconds) {
+      testScope.isActive shouldBe false
+      job.isActive shouldBe false
     }
   }
 })
