@@ -157,6 +157,24 @@ class ReactiveModelTest : ShouldSpec({
     }
   }
 
+  should("emit error to when replayLast is false and emit after construct before subscribe") {
+    val sut = object : ReactiveModel() {
+      val task = task { ->
+        throw RuntimeException("hello")
+      }
+    }.also { it.start(testScope) }
+
+    val flow = sut.task.jobFlow.errors(replayLast = false)
+
+    sut.task.start()
+    sut.task.jobFlow.results().first() // await result
+    sut.task.jobFlow.state.filter { it == JobState.Idle }
+
+    flow.test {
+      this.expectNoEvents()
+    }
+  }
+
   should("cancel model when parentScope is cancelled") {
     val sut = object : ReactiveModel() {
       val task = task { ->
