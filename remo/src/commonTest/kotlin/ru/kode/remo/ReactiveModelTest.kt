@@ -30,7 +30,7 @@ class ReactiveModelTest : ShouldSpec({
       val foo = task { -> 33 }
     }.also { it.start(testScope) }
 
-    sut.foo.jobFlow.successResults().test {
+    sut.foo.jobFlow.successResults(replayLast = true).test {
       sut.foo.start()
       awaitItem() shouldBe 33
       sut.foo.start()
@@ -59,12 +59,12 @@ class ReactiveModelTest : ShouldSpec({
     }.also { it.start(testScope) }
 
     sut.foo.start(33)
-    sut.foo.jobFlow.successResults().first() // await result
+    sut.foo.jobFlow.successResults(replayLast = true).first() // await result
     sut.foo.jobFlow.state.filter { it == JobState.Idle }.first()
     sut.foo.start(44)
 
     // new subscriber
-    sut.foo.jobFlow.successResults().test {
+    sut.foo.jobFlow.successResults(replayLast = true).test {
       awaitItem() shouldBe 44
       cancelAndConsumeRemainingEvents()
     }
