@@ -5,6 +5,7 @@ import com.github.michaelbull.result.Ok
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -62,6 +63,8 @@ class ReactiveModelTest : ShouldSpec({
     sut.foo.jobFlow.successResults(replayLast = true).first() // await result
     sut.foo.jobFlow.state.filter { it == JobState.Idle }.first()
     sut.foo.start(44)
+    sut.foo.jobFlow.successResults(replayLast = true).first() // await result
+    sut.foo.jobFlow.state.filter { it == JobState.Idle }.first()
 
     // new subscriber
     sut.foo.jobFlow.successResults(replayLast = true).test {
@@ -189,6 +192,34 @@ class ReactiveModelTest : ShouldSpec({
     eventually(duration = 3.seconds) {
       testScope.isActive shouldBe false
       job.isActive shouldBe false
+    }
+  }
+
+  should("use global custom exception mapper") {
+    val mapper = { e: Throwable -> if (e is CancellationException) throw e else RuntimeException(e.message + "adj") }
+    val sut = object : ReactiveModel(errorMapper = mapper) {
+      val task = task { ->
+        error("hello")
+      }
+    }.also { it.start(testScope) }
+
+    sut.task.jobFlow.errors(replayLast = false).test {
+      sut.task.start()
+      awaitItem().message shouldBe "helloadj"
+    }
+  }
+
+  should("allow local error mapper override the global one") {
+    val mapper = { e: Throwable -> if (e is CancellationException) throw e else RuntimeException(e.message + "adj") }
+    val sut = object : ReactiveModel(errorMapper = mapper) {
+      val task = task(errorMapper = { RuntimeException(it.message + "jda") }) { ->
+        error("hello")
+      }
+    }.also { it.start(testScope) }
+
+    sut.task.jobFlow.errors(replayLast = false).test {
+      sut.task.start()
+      awaitItem().message shouldBe "hellojda"
     }
   }
 })

@@ -241,7 +241,15 @@ public open class ReactiveModel(
   /**
    * Dispatcher, который по умолчанию используется для выполнения Job/Task
    */
-  private val dispatcher: CoroutineDispatcher = Dispatchers.Default
+  private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+  /**
+   * Если указан, будет использоваться для маппинга ошибок **всех тасков**
+   * перед их emit-ом в стримы результатов/ошибок.
+   *
+   * Можно также указывать "локальные" функции-мапперы для [Task] и [WatchContext], они будут приоритетнее, чем
+   * данный глобальный маппер
+   */
+  private val errorMapper: ((Throwable) -> Throwable)? = null,
 ) {
   private val _uncaughtExceptions = MutableSharedFlow<Throwable>(replay = 1, extraBufferCapacity = 10)
 
@@ -389,45 +397,69 @@ public open class ReactiveModel(
   /**
    * Создаёт [Task] без входных параметров. При вызове [Task0.start], переданный [body] будет выполнен в
    * заранее созданном [WatchContext] с именем [name]
+   *
+   * @param name имя задачи, описательное
+   * @param errorMapper Если указан, будет использоваться для маппинга ошибок перед
+   * их emit-ом в стримы результатов/ошибок.
+   * @param body выполняемое тело задачи
    */
   protected fun <R> task(
     name: String = createTaskName(),
+    errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend () -> R,
   ): Task0<R> {
-    return taskIn(WatchContext(name), body)
+    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper), body)
   }
 
   /**
    * Создаёт [Task] с одним входным параметром. При вызове [Task1.start], переданный [body] будет выполнен в
    * заранее созданном [WatchContext] с именем [name]
+   *
+   * @param name имя задачи, описательное
+   * @param errorMapper Если указан, будет использоваться для маппинга ошибок перед
+   * их emit-ом в стримы результатов/ошибок.
+   * @param body выполняемое тело задачи
    */
   protected fun <P1, R> task(
     name: String = createTaskName(),
+    errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend (P1) -> R,
   ): Task1<P1, R> {
-    return taskIn(WatchContext(name)) { p1 -> body(p1) }
+    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper)) { p1 -> body(p1) }
   }
 
   /**
    * Создаёт [Task] с двумя входными параметрами. При вызове [Task2.start], переданный [body] будет выполнен в
    * заранее созданном [WatchContext] с именем [name]
+   *
+   * @param name имя задачи, описательное
+   * @param errorMapper Если указан, будет использоваться для маппинга ошибок перед
+   * их emit-ом в стримы результатов/ошибок.
+   * @param body выполняемое тело задачи
    */
   protected fun <P1, P2, R> task(
     name: String = createTaskName(),
+    errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend (P1, P2) -> R,
   ): Task2<P1, P2, R> {
-    return taskIn(WatchContext(name)) { p1, p2 -> body(p1, p2) }
+    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper)) { p1, p2 -> body(p1, p2) }
   }
 
   /**
    * Создаёт [Task] с тремя входными параметрами. При вызове [Task2.start], переданный [body] будет выполнен в
    * заранее созданном [WatchContext] с именем [name]
+   *
+   * @param name имя задачи, описательное
+   * @param errorMapper Если указан, будет использоваться для маппинга ошибок перед
+   * их emit-ом в стримы результатов/ошибок.
+   * @param body выполняемое тело задачи
    */
   protected fun <P1, P2, P3, R> task(
     name: String = createTaskName(),
+    errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend (P1, P2, P3) -> R,
   ): Task3<P1, P2, P3, R> {
-    return taskIn(WatchContext(name)) { p1, p2, p3 -> body(p1, p2, p3) }
+    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper)) { p1, p2, p3 -> body(p1, p2, p3) }
   }
 
   /**
@@ -449,12 +481,18 @@ public open class ReactiveModel(
    * val fetch = task0 {
    * }
    * ```
+   *
+   * @param name имя задачи, описательное
+   * @param errorMapper Если указан, будет использоваться для маппинга ошибок перед
+   * их emit-ом в стримы результатов/ошибок.
+   * @param body выполняемое тело задачи
    */
   protected fun <R> task0(
     name: String = createTaskName(),
+    errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend () -> R,
   ): Task0<R> {
-    return taskIn(WatchContext(name), body)
+    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper), body)
   }
 
   public companion object {
