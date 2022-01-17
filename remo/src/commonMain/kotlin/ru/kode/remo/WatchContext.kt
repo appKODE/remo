@@ -4,7 +4,6 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.get
-import com.github.michaelbull.result.getError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -12,10 +11,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -62,17 +59,5 @@ public class WatchContext<R>(
     } else {
       _results
     }.filterNotNull()
-  }
-
-  override fun successResults(replayLast: Boolean): Flow<R> {
-    return results(replayLast)
-      .filterIsInstance<Ok<R>>()
-      .map { it.get() ?: error("internal error: null result") }
-  }
-
-  override fun errors(replayLast: Boolean): Flow<Throwable> {
-    return results(replayLast)
-      .filterIsInstance<Err<Throwable>>()
-      .map { it.getError() ?: error("internal error: null result") }
   }
 }
