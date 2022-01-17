@@ -11,9 +11,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -49,9 +51,11 @@ public class WatchContext<R>(public val name: String = ReactiveModel.createWatch
   override val state: StateFlow<JobState> = _state
 
   override fun results(replayLast: Boolean): Flow<Result<R, Throwable>> {
-    return _results
-      .drop(if (replayLast) 0 else _results.replayCache.size)
-      .filterNotNull()
+    return if (!replayLast) {
+      flow { _results.drop(_results.replayCache.size).collect { emit(it) } }
+    } else {
+      _results
+    }.filterNotNull()
   }
 
   override fun successResults(replayLast: Boolean): Flow<R> {
