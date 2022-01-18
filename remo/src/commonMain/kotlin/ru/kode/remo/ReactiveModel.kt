@@ -502,11 +502,6 @@ public open class ReactiveModel(
   }
 
   public companion object {
-    @ThreadLocal
-    private var NEXT_TASK_ID: Long = 0
-    @ThreadLocal
-    private var NEXT_WATCH_CONTEXT_ID: Long = 0
-
     internal fun createTaskName(): String {
       return "task#$NEXT_TASK_ID".also { NEXT_TASK_ID += 1 }
     }
@@ -516,3 +511,8 @@ public open class ReactiveModel(
     }
   }
 }
+
+@ThreadLocal
+private var NEXT_TASK_ID: Long = 0
+@ThreadLocal
+private var NEXT_WATCH_CONTEXT_ID: Long = 0
