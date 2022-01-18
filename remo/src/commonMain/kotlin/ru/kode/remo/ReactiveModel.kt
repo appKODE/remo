@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
+import kotlin.native.concurrent.ThreadLocal
 
 /**
  * Данный класс предоставляет контекст для асинхронного запуска задач (jobs) с возможностью наблюдения за
@@ -501,7 +502,9 @@ public open class ReactiveModel(
   }
 
   public companion object {
+    @ThreadLocal
     private var NEXT_TASK_ID: Long = 0
+    @ThreadLocal
     private var NEXT_WATCH_CONTEXT_ID: Long = 0
 
     internal fun createTaskName(): String {
