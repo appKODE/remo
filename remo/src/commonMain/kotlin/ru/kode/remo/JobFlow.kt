@@ -38,7 +38,7 @@ public interface JobFlow<R> {
  * большинстве случаев за успешным выполеннием следят уже после подписки, поэтому они
  * должны представлять собой "event", а не "state"
  */
-public fun <R> JobFlow<R>.successResults(replayLast: Boolean): Flow<R> {
+public fun <R> JobFlow<R>.successResults(replayLast: Boolean = false): Flow<R> {
   return results(replayLast)
     .filterIsInstance<Ok<R>>()
     .map { it.get() ?: error("internal error: null result") }
@@ -52,7 +52,7 @@ public fun <R> JobFlow<R>.successResults(replayLast: Boolean): Flow<R> {
  * Обратите внимание, что по умолчанию здесь [replayLast] установлен в `false`, потому что в подавляющем
  * большинстве случаев ошибки должны представлять собой "event", а не "state"
  */
-public fun <R> JobFlow<R>.errors(replayLast: Boolean): Flow<Throwable> {
+public fun <R> JobFlow<R>.errors(replayLast: Boolean = false): Flow<Throwable> {
   return results(replayLast)
     .filterIsInstance<Err<Throwable>>()
     .map { it.getError() ?: error("internal error: null result") }

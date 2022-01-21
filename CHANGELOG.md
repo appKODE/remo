@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.4 - 2022-01-21
+* `successResults`/`errorResults` теперь имеют умолчальное значение для `replayLast` (было забыто)
+
 ## 1.0.3 - 2022-01-18
 
 * `successResults` по умолчанию теперь имеют `replayLast=false`
