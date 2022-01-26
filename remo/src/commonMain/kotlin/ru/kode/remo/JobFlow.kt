@@ -6,7 +6,6 @@ import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
 import com.github.michaelbull.result.map
-import com.github.michaelbull.result.mapError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -58,22 +57,32 @@ public fun <R> JobFlow<R>.errors(replayLast: Boolean = false): Flow<Throwable> {
     .map { it.getError() ?: error("internal error: null result") }
 }
 
-public fun <R1, R2> JobFlow<R1>.mapResults(transform: (R1) -> R2): JobFlow<R2> {
+public fun <R1, R2> JobFlow<R1>.mapSuccessResults(transform: suspend (R1) -> R2): JobFlow<R2> {
   return object : JobFlow<R2> {
-    override val state: StateFlow<JobState> = this@mapResults.state
+    override val state: StateFlow<JobState> = this@mapSuccessResults.state
 
     override fun results(replayLast: Boolean): Flow<Result<R2, Throwable>> {
-      return this@mapResults.results(replayLast).map { it.map(transform) }
+      return this@mapSuccessResults.results(replayLast).map {
+        when (it) {
+          is Ok -> Ok(transform(it.value))
+          is Err -> it
+        }
+      }
     }
   }
 }
 
-public fun <R> JobFlow<R>.mapErrors(transform: (Throwable) -> Throwable): JobFlow<R> {
+public fun <R> JobFlow<R>.mapErrors(transform: suspend (Throwable) -> Throwable): JobFlow<R> {
   return object : JobFlow<R> {
     override val state: StateFlow<JobState> = this@mapErrors.state
 
     override fun results(replayLast: Boolean): Flow<Result<R, Throwable>> {
-      return this@mapErrors.results(replayLast).map { it.mapError(transform) }
+      return this@mapErrors.results(replayLast).map {
+        when (it) {
+          is Ok -> it
+          is Err -> Err(transform(it.error))
+        }
+      }
     }
   }
 }
