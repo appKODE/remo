@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5 - 2022-01-21
+* Функция `mapResults` переименована в `mapSuccessResults`, в соответствии с тем что она делает
+* Лямбда-аргументы `mapSuccessResults` и `mapErrors` получили модификатор `suspend`
+
 ## 1.0.4 - 2022-01-21
 * `successResults`/`errorResults` теперь имеют умолчальное значение для `replayLast` (было забыто)
 
