@@ -7,7 +7,6 @@ import com.github.michaelbull.result.get
 import com.github.michaelbull.result.getError
 import com.github.michaelbull.result.map
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 
@@ -16,9 +15,9 @@ import kotlinx.coroutines.flow.map
  */
 public interface JobFlow<R> {
   /**
-   * Стрим состояний активности-неактивности
+   * Стрим состояний активности-неактивности. При подписке всегда отправляет последнее состояние.
    */
-  public val state: StateFlow<JobState>
+  public val state: Flow<JobState>
 
   /**
    * Стрим результатов выполнения задачи. Если [replayLast] будет
@@ -59,7 +58,7 @@ public fun <R> JobFlow<R>.errors(replayLast: Boolean = false): Flow<Throwable> {
 
 public fun <R1, R2> JobFlow<R1>.mapSuccessResults(transform: suspend (R1) -> R2): JobFlow<R2> {
   return object : JobFlow<R2> {
-    override val state: StateFlow<JobState> = this@mapSuccessResults.state
+    override val state: Flow<JobState> = this@mapSuccessResults.state
 
     override fun results(replayLast: Boolean): Flow<Result<R2, Throwable>> {
       return this@mapSuccessResults.results(replayLast).map {
@@ -74,7 +73,7 @@ public fun <R1, R2> JobFlow<R1>.mapSuccessResults(transform: suspend (R1) -> R2)
 
 public fun <R> JobFlow<R>.mapErrors(transform: suspend (Throwable) -> Throwable): JobFlow<R> {
   return object : JobFlow<R> {
-    override val state: StateFlow<JobState> = this@mapErrors.state
+    override val state: Flow<JobState> = this@mapErrors.state
 
     override fun results(replayLast: Boolean): Flow<Result<R, Throwable>> {
       return this@mapErrors.results(replayLast).map {

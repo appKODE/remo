@@ -3,13 +3,11 @@ package ru.kode.remo
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
-import com.github.michaelbull.result.get
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
@@ -51,7 +49,7 @@ public class WatchContext<R>(
     scope.launch(block = { execute(body) })
   }
 
-  override val state: StateFlow<JobState> = _state
+  override val state: Flow<JobState> = _state
 
   override fun results(replayLast: Boolean): Flow<Result<R, Throwable>> {
     return if (!replayLast) {
