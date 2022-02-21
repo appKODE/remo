@@ -5,7 +5,7 @@ coroutines = "1.6.0"
 kotlin = "1.6.10"
 spotless = "6.0.5"
 dokka = "1.5.31"
-kotlinResult = "1.1.13"
+kotlinResult = "1.1.15-SNAPSHOT"
 turbine = "0.7.0"
 
 [libraries]
