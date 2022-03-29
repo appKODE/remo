@@ -1,5 +1,7 @@
 package ru.kode.remo
 
+import kotlinx.coroutines.Job
+
 /**
  * Задача, выполняемая в рамках [ReactiveModel]
  */
@@ -14,7 +16,7 @@ public interface Task<R> {
  */
 public class Task0<R>(
   override val jobFlow: JobFlow<R>,
-  public val start: () -> Unit,
+  public val start: () -> Job,
 ) : Task<R>
 
 /**
@@ -24,7 +26,7 @@ public class Task0<R>(
  */
 public class Task1<in P1, R>(
   override val jobFlow: JobFlow<R>,
-  public val start: (P1) -> Unit,
+  public val start: (P1) -> Job,
 ) : Task<R>
 
 /**
@@ -34,7 +36,7 @@ public class Task1<in P1, R>(
  */
 public class Task2<in P1, in P2, R>(
   override val jobFlow: JobFlow<R>,
-  public val start: (P1, P2) -> Unit,
+  public val start: (P1, P2) -> Job,
 ) : Task<R>
 
 /**
@@ -44,5 +46,5 @@ public class Task2<in P1, in P2, R>(
  */
 public class Task3<in P1, in P2, in P3, R>(
   override val jobFlow: JobFlow<R>,
-  public val start: (P1, P2, P3) -> Unit,
+  public val start: (P1, P2, P3) -> Job,
 ) : Task<R>

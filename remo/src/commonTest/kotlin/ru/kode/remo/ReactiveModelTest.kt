@@ -9,11 +9,15 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
@@ -220,6 +224,31 @@ class ReactiveModelTest : ShouldSpec({
     sut.task.jobFlow.errors(replayLast = false).test {
       sut.task.start()
       awaitItem().message shouldBe "hellojda"
+    }
+  }
+
+  should("cancel task on Job cancel") {
+    val sut = object : ReactiveModel() {
+      val flow = MutableStateFlow(0)
+      val task = task { ->
+        while (true) {
+          flow.update { it + 1 }
+          delay(100)
+          yield()
+        }
+      }
+    }.also { it.start(testScope) }
+
+    sut.flow.test {
+      val job = sut.task.start()
+
+      awaitItem() shouldBe 0
+      awaitItem() shouldBe 1
+      awaitItem() shouldBe 2
+      awaitItem() shouldBe 3
+      job.cancelAndJoin()
+      delay(200)
+      expectNoEvents()
     }
   }
 })

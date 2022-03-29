@@ -5,6 +5,7 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +31,7 @@ public class WatchContext<R>(
   private val _results = MutableSharedFlow<Result<R, Throwable>?>(replay = 1)
 
   @Suppress("TooGenericExceptionCaught") // intentionally catching all exceptions to wrap them in Result
-  public suspend fun execute(body: suspend () -> R) {
+  private suspend fun execute(body: suspend () -> R) {
     if (_state.value == JobState.Running) {
       error("$name is already executing some job")
     }
@@ -45,8 +46,8 @@ public class WatchContext<R>(
     }
   }
 
-  public fun executeIn(scope: CoroutineScope, body: suspend () -> R) {
-    scope.launch(block = { execute(body) })
+  public fun executeIn(scope: CoroutineScope, body: suspend () -> R): Job {
+    return scope.launch(block = { execute(body) })
   }
 
   override val state: Flow<JobState> = _state

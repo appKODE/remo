@@ -164,6 +164,37 @@ class LoginModel : ReactiveModel {
 }
 ```
 
+## Отмена задач
+
+При работе с `Task`, его функция `start` возвращает объект `Job`, который можно использовать для отмены:
+
+```kotlin
+class LoginModel : ReactiveModel {
+  val fetch = task {
+    while (true) {
+      delay(100)
+      yield()
+    }
+  }
+}
+
+fun main() {
+  val model = LoginModel()
+  model.start()
+  runBlocking {
+    coroutineScope {
+      val job = model.fetch.start()
+      delay(1000)
+      job.cancel()
+      println("Cancelled")
+    }
+  }
+}
+```
+
+Если модель внутри работает с `WatchContext` и не отдаёт наружу `Task`, то она может реализовать аналогичный механизм,
+через работу с `Job`, возвращаемую функцией `executeInModelScope()`.
+
 ## Запуск задач друг за другом
 
 Если нужно организовать последовательный запуск нескольких задач, можно сделать это просто вызывая `start`/`execute`,

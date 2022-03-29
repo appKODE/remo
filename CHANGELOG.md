@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.8 - 2022-03-29
+* Добавлена возможность отменять Task
+
 ## 1.0.7 - 2022-02-21
 * Добавлены targets для M1: iosSimulatorArm64, macosArm64, macosX64
 

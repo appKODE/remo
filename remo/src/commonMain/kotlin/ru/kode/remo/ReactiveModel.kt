@@ -87,8 +87,8 @@ public open class ReactiveModel(
   /**
    * Запускает [body] внутри [scope] модели
    */
-  protected fun <R> WatchContext<R>.executeInModelScope(body: suspend () -> R) {
-    this.executeIn(scope, body)
+  protected fun <R> WatchContext<R>.executeInModelScope(body: suspend () -> R): Job {
+    return this.executeIn(scope, body)
   }
 
   /**
