@@ -34,14 +34,20 @@ class UserListModel : ReactiveModel {
 
 fun main(val model: UserListModel) {
   model.start()
-  launch {
-    model.fetch.jobFlow.state.collect { println("state: $it" }
-    model.fetch.jobFlow.errors().collect { println("error: $it" }
-    model.fetch.jobFlow.results().collect { println("result: $it" }
+  coroutineScope {
+    launch {
+      model.fetch.jobFlow.state.collect { println("state: $it") }
+    }
+    launch {
+      model.fetch.jobFlow.errors().collect { println("error: $it") }
+    }
+    launch {
+      model.fetch.jobFlow.results().collect { println("result: $it") }
+    }
+    launch {
+      model.fetch.start(SortConfiguration.Ascending)
+    }
   }
-  launch {
-    model.fetch.start(SortConfiguration.Ascending)
-  }.join()
   model.dispose()
 }
 ```
