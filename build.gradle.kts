@@ -67,6 +67,18 @@ subprojects {
             password = project.findProperty("kodeMavenPassword")?.toString()
           }
         }
+
+        maven {
+          name = "Central"
+          val releasesRepoUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+          val snapshotsRepoUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+          val versionName: String by project
+          url = if (versionName.endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
+          credentials {
+            username = project.findProperty("NEXUS_USERNAME")?.toString()
+            password = project.findProperty("NEXUS_PASSWORD")?.toString()
+          }
+        }
       }
 
       publications.withType<MavenPublication> {
