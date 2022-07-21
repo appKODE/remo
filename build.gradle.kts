@@ -56,16 +56,16 @@ subprojects {
       repositories {
         maven {
           name = "Kode"
-          val releaseRepoPath = project.property("kodeReleaseRepoPath")?.toString() ?: error("null release repo")
-          val snapshotsRepoPath = project.property("kodeSnapshotsRepoPath")?.toString() ?: error("null snapshots repo")
+          val releaseRepoPath = project.findProperty("kodeReleaseRepoPath")?.toString() ?: error("null release repo")
+          val snapshotsRepoPath = project.findProperty("kodeSnapshotsRepoPath")?.toString() ?: error("null snapshots repo")
           val releasesRepoUrl = uri(releaseRepoPath)
           val snapshotsRepoUrl = uri(snapshotsRepoPath)
           val versionName: String by project
           url = if (versionName.endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
           isAllowInsecureProtocol = true
           credentials {
-            username = project.property("kodeMavenUser")?.toString()
-            password = project.property("kodeMavenPassword")?.toString()
+            username = project.findProperty("kodeMavenUser")?.toString()
+            password = project.findProperty("kodeMavenPassword")?.toString()
           }
         }
       }
