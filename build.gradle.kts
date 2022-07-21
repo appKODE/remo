@@ -53,8 +53,10 @@ subprojects {
       repositories {
         maven {
           name = "Kode"
-          val releaseRepoPath = project.findProperty("kodeReleaseRepoPath")?.toString() ?: error("null release repo")
-          val snapshotsRepoPath = project.findProperty("kodeSnapshotsRepoPath")?.toString() ?: error("null snapshots repo")
+          val releaseRepoPath = project.findProperty("kodeReleaseRepoPath")?.toString()
+            ?: error("null release repo")
+          val snapshotsRepoPath = project.findProperty("kodeSnapshotsRepoPath")?.toString()
+            ?: error("null snapshots repo")
           val releasesRepoUrl = uri(releaseRepoPath)
           val snapshotsRepoUrl = uri(snapshotsRepoPath)
           val versionName: String by project
