@@ -62,7 +62,6 @@ subprojects {
           val snapshotsRepoUrl = uri(snapshotsRepoPath)
           val versionName: String by project
           url = if (versionName.endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
-          isAllowInsecureProtocol = true
           credentials {
             username = project.findProperty("kodeMavenUser")?.toString()
             password = project.findProperty("kodeMavenPassword")?.toString()
