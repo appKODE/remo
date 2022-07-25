@@ -53,7 +53,6 @@ public open class ReactiveModel(
    */
   public val uncaughtExceptions: Flow<Throwable> = _uncaughtExceptions
   private val handler = CoroutineExceptionHandler { _, e ->
-    println("heve error in handler")
     if (!_uncaughtExceptions.tryEmit(e)) {
       println("failed to emit an uncaught error, printing to stdout")
       e.printStackTrace()
