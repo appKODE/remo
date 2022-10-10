@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 /**
  * Контекст для запуска suspend-функций и наблюдения за ходом их выполнения.
@@ -31,10 +32,15 @@ public class WatchContext<R>(
   public val errorMapper: ((Throwable) -> Throwable)? = null,
 ) : JobFlow<R> {
   private val _state = MutableStateFlow(JobState.Idle)
-  private val _results = MutableSharedFlow<Result<R, Throwable>?>(replay = 1)
+  private val _results = MutableSharedFlow<Result<R, Throwable>?>(replay = 1, extraBufferCapacity = 12)
 
   @Suppress("TooGenericExceptionCaught") // intentionally catching all exceptions to wrap them in Result
-  private suspend fun execute(body: suspend () -> R) {
+  private suspend fun execute(scheduled: StartScheduled, body: suspend () -> R) {
+    if (scheduled == StartScheduled.Lazily) {
+      while (_results.subscriptionCount.value < 1 || _state.subscriptionCount.value < 1) {
+        yield()
+      }
+    }
     if (_state.value == JobState.Running) {
       error("$name is already executing some job")
     }
@@ -49,8 +55,8 @@ public class WatchContext<R>(
     }
   }
 
-  public fun executeIn(scope: CoroutineScope, body: suspend () -> R): Job {
-    return scope.launch(block = { execute(body) })
+  public fun executeIn(scope: CoroutineScope, started: StartScheduled, body: suspend () -> R): Job {
+    return scope.launch(block = { execute(started, body) })
   }
 
   override val state: Flow<JobState> = _state
@@ -62,4 +68,16 @@ public class WatchContext<R>(
       _results
     }.filterNotNull()
   }
+}
+
+public enum class StartScheduled {
+  /**
+   * Execution starts only after at least one subscriber appears on both results() and state streams
+   */
+  Lazily,
+
+  /**
+   * Execution starts immediately without waiting for any subscribers to appear
+   */
+  Eagerly
 }

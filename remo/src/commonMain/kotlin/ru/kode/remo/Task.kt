@@ -17,10 +17,9 @@ public interface Task<R> {
  * Функция [start] используется для запуска/повторного запуска данной задачи.
  * За ходом её выполнения можно следить используя поля объекта [jobFlow]
  */
-public class Task0<R>(
-  override val jobFlow: JobFlow<R>,
-  public val start: () -> Job,
-) : Task<R>
+public interface Task0<R> : Task<R> {
+  public fun start(scheduled: StartScheduled = StartScheduled.Eagerly): Job
+}
 
 /**
  * Задача с одним входным параметром, выполняемая в рамках [ReactiveModel].

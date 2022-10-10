@@ -89,8 +89,8 @@ public open class ReactiveModel(
   /**
    * Запускает [body] внутри [scope] модели
    */
-  protected fun <R> WatchContext<R>.executeInModelScope(body: suspend () -> R): Job {
-    return this.executeIn(scope, body)
+  protected fun <R> WatchContext<R>.executeInModelScope(scheduled: StartScheduled, body: suspend () -> R): Job {
+    return this.executeIn(scope, scheduled, body)
   }
 
   /**
@@ -100,10 +100,13 @@ public open class ReactiveModel(
     context: WatchContext<R>,
     body: suspend () -> R,
   ): Task0<R> {
-    return Task0(
-      jobFlow = context,
-      start = { context.executeInModelScope(body) }
-    )
+    return object : Task0<R> {
+      override fun start(scheduled: StartScheduled): Job {
+        return context.executeInModelScope(scheduled, body)
+      }
+
+      override val jobFlow: JobFlow<R> = context
+    }
   }
 
   /**
@@ -116,7 +119,7 @@ public open class ReactiveModel(
     return Task1(
       jobFlow = context,
       start = { p1 ->
-        context.executeInModelScope { body(p1) }
+        context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(p1) }
       }
     )
   }
@@ -130,7 +133,7 @@ public open class ReactiveModel(
   ): Task2<P1, P2, R> {
     return Task2(
       start = { p1, p2 ->
-        context.executeInModelScope { body(p1, p2) }
+        context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(p1, p2) }
       },
       jobFlow = context
     )
@@ -145,7 +148,7 @@ public open class ReactiveModel(
   ): Task3<P1, P2, P3, R> {
     return Task3(
       start = { p1, p2, p3 ->
-        context.executeInModelScope { body(p1, p2, p3) }
+        context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(p1, p2, p3) }
       },
       jobFlow = context
     )
@@ -174,10 +177,14 @@ public open class ReactiveModel(
     context: WatchContext<R>,
     body: suspend () -> R,
   ): Task0<R> {
-    return Task0(
-      jobFlow = context,
-      start = { context.executeInModelScope(body) }
-    )
+    return object : Task0<R> {
+      override fun start(scheduled: StartScheduled): Job {
+        return context.executeInModelScope(scheduled, body)
+      }
+
+      override val jobFlow: JobFlow<R> = context
+
+    }
   }
 
   /**
