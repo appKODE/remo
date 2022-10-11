@@ -36,8 +36,10 @@ public class WatchContext<R>(
 
   @Suppress("TooGenericExceptionCaught") // intentionally catching all exceptions to wrap them in Result
   private suspend fun execute(scheduled: StartScheduled, body: suspend () -> R) {
-    if (scheduled == StartScheduled.Lazily) {
-      while (_results.subscriptionCount.value < 1 || _state.subscriptionCount.value < 1) {
+    if (scheduled is StartScheduled.Lazily) {
+      while (_results.subscriptionCount.value < scheduled.minResultsSubscribers ||
+        _state.subscriptionCount.value < scheduled.minStateSubscribers
+      ) {
         yield()
       }
     }
@@ -70,14 +72,26 @@ public class WatchContext<R>(
   }
 }
 
-public enum class StartScheduled {
+public sealed class StartScheduled {
+
   /**
-   * Execution starts only after at least one subscriber appears on both results() and state streams
+   * Execution will start once [minStateSubscribers] and [minResultsSubscribers] subscriptions are registered.
+   *
+   * @param minStateSubscribers the minimum subscriber count to [JobFlow.state] which is needed for the job to start
+   * executing
+   * @param minResultsSubscribers the minimum subscriber count to [JobFlow.results] which is needed for the job to start
+   * executing
    */
-  Lazily,
+  public data class Lazily(val minStateSubscribers: Int = 1, val minResultsSubscribers: Int = 1) : StartScheduled() {
+    init {
+      check(minStateSubscribers > 0 || minResultsSubscribers > 0) {
+        "At least one of \"minStateSubscribers\" or \"minResultsSubscribers\" must be greater than 0"
+      }
+    }
+  }
 
   /**
    * Execution starts immediately without waiting for any subscribers to appear
    */
-  Eagerly
+  public object Eagerly : StartScheduled()
 }

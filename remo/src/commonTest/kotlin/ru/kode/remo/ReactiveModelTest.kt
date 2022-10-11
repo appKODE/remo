@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.github.michaelbull.result.Ok
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.ShouldSpec
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -249,6 +251,68 @@ class ReactiveModelTest : ShouldSpec({
       job.cancelAndJoin()
       delay(200)
       expectNoEvents()
+    }
+  }
+
+  should("subscribe eagerly when requested") {
+    val sut = object : ReactiveModel() {
+      val flow = MutableStateFlow(0)
+      val task = task { ->
+        flow.update { it + 1 }
+      }
+    }.also { it.start(testScope) }
+
+    sut.task.start(scheduled = StartScheduled.Eagerly)
+    delay(200)
+
+    // subscribing without replay should emit nothing,
+    // but subscribing with replay should produce result which was computed almost immediately after
+    // start() and prior to any subscriptions
+
+    val result = withTimeoutOrNull(300) {
+      sut.task.jobFlow.results(replayLast = false).first()
+    }
+    result.shouldBeNull()
+    sut.task.jobFlow.results(replayLast = true).test {
+      awaitItem() shouldBe Ok(Unit)
+    }
+  }
+
+  should("subscribe lazily when requested with min results subscribers") {
+    val sut = object : ReactiveModel() {
+      val flow = MutableStateFlow(0)
+      val task = task { ->
+        flow.update { it + 1 }
+      }
+    }.also { it.start(testScope) }
+
+    sut.task.start(scheduled = StartScheduled.Lazily(minResultsSubscribers = 1, minStateSubscribers = 0))
+    delay(200)
+
+    // subscribing without replay should still work because execution will start lazily,
+    // only after results() subscriber is registered
+    sut.task.jobFlow.results(replayLast = false).test {
+      awaitItem() shouldBe Ok(Unit)
+    }
+  }
+
+  should("subscribe lazily when requested with min state subscribers") {
+    val sut = object : ReactiveModel() {
+      val flow = MutableStateFlow(0)
+      val task = task { ->
+        flow.update { it + 1 }
+      }
+    }.also { it.start(testScope) }
+
+    sut.task.start(scheduled = StartScheduled.Lazily(minResultsSubscribers = 0, minStateSubscribers = 1))
+    delay(200)
+
+    // subscribing without replay should still work because execution will start lazily,
+    // only after state() subscriber is registered
+    sut.task.jobFlow.state.test {
+      awaitItem() shouldBe JobState.Idle
+      awaitItem() shouldBe JobState.Running
+      awaitItem() shouldBe JobState.Idle
     }
   }
 })
