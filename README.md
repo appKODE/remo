@@ -195,6 +195,21 @@ fun main() {
 Если модель внутри работает с `WatchContext` и не отдаёт наружу `Task`, то она может реализовать аналогичный механизм,
 через работу с `Job`, возвращаемую функцией `executeInModelScope()`.
 
+## Подписка на состояния: немедленная и ленивая
+
+Бывают ситуации, когда `Task`/`WatchContext.execute()` выполняются практически мгновенно, и нет возможности получить результат выполнения без указания `results(replayLast = true)`.
+В этом случае можно передать функции `Task.start()`/`WatchContext.execute()` параметр `scheduled`, указав `StartScheduled.Lazily` и задав минимальное количество подписчиков, которые должны появится у `WatchContext`, прежде чем его задачи начнут выполняться, например:
+
+```kotlin
+model.fetchUsers.start(
+  scheduled = StartScheduled.Lazily(minResultsSubscribers = 1, minStateSubscribers = 0)
+)
+delay(2000)
+// this will correctly print results while with `StartScheduled.Eagerly` 
+// they will be emitted early and won't be ever replayed
+model.fetchUsers.results(replayLast = false).collect { println(it) }
+```
+
 ## Запуск задач друг за другом
 
 Если нужно организовать последовательный запуск нескольких задач, можно сделать это просто вызывая `start`/`execute`,

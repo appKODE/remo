@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.0 - 2022-10-11
+* Добавлена возможность стартовать Task/JobFlow "лениво": после появления подписчиков на `Flow` результатов и/или состояния jobFlow:
+
+```kotlin
+model.fetchUsers.start(
+  scheduled = StartScheduled.Lazily(minResultsSubscribers = 1, minStateSubscribers = 0)
+)
+delay(2000)
+// this will correctly print results while with `StartScheduled.Eagerly` 
+// they will be emitted early and won't be ever replayed
+model.fetchUsers.results(replayLast = false).collect { println(it) }
+```
+
 ## 1.0.8 - 2022-03-29
 * Добавлена возможность отменять Task
 
