@@ -116,12 +116,13 @@ public open class ReactiveModel(
     context: WatchContext<R>,
     body: suspend (P1) -> R,
   ): Task1<P1, R> {
-    return Task1(
-      jobFlow = context,
-      start = { p1 ->
-        context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(p1) }
+    return object : Task1<P1, R> {
+      override fun start(argument: P1, scheduled: StartScheduled): Job {
+        return context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(argument) }
       }
-    )
+
+      override val jobFlow: JobFlow<R> = context
+    }
   }
 
   /**
@@ -131,12 +132,13 @@ public open class ReactiveModel(
     context: WatchContext<R>,
     body: suspend (P1, P2) -> R,
   ): Task2<P1, P2, R> {
-    return Task2(
-      start = { p1, p2 ->
-        context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(p1, p2) }
-      },
-      jobFlow = context
-    )
+    return object : Task2<P1, P2, R> {
+      override fun start(argument1: P1, argument2: P2, scheduled: StartScheduled): Job {
+        return context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(argument1, argument2) }
+      }
+
+      override val jobFlow: JobFlow<R> = context
+    }
   }
 
   /**
@@ -146,12 +148,13 @@ public open class ReactiveModel(
     context: WatchContext<R>,
     body: suspend (P1, P2, P3) -> R,
   ): Task3<P1, P2, P3, R> {
-    return Task3(
-      start = { p1, p2, p3 ->
-        context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(p1, p2, p3) }
-      },
-      jobFlow = context
-    )
+    return object : Task3<P1, P2, P3, R> {
+      override fun start(argument1: P1, argument2: P2, argument3: P3, scheduled: StartScheduled): Job {
+        return context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(argument1, argument2, argument3) }
+      }
+
+      override val jobFlow: JobFlow<R> = context
+    }
   }
 
   /**
@@ -183,7 +186,6 @@ public open class ReactiveModel(
       }
 
       override val jobFlow: JobFlow<R> = context
-
     }
   }
 

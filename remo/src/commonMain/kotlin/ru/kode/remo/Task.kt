@@ -26,27 +26,36 @@ public interface Task0<R> : Task<R> {
  * Функция [start] используется для запуска/повторного запуска данной задачи.
  * За ходом её выполнения можно следить используя поля объекта [jobFlow]
  */
-public class Task1<in P1, R>(
-  override val jobFlow: JobFlow<R>,
-  public val start: (P1) -> Job,
-) : Task<R>
+public interface Task1<in P1, R> : Task<R> {
+  public fun start(
+    argument: P1,
+    scheduled: StartScheduled = StartScheduled.Eagerly
+  ): Job
+}
 
 /**
  * Задача с двумя входными параметрами , выполняемая в рамках [ReactiveModel].
  * Функция [start] используется для запуска/повторного запуска данной задачи.
  * За ходом её выполнения можно следить используя поля объекта [jobFlow]
  */
-public class Task2<in P1, in P2, R>(
-  override val jobFlow: JobFlow<R>,
-  public val start: (P1, P2) -> Job,
-) : Task<R>
+public interface Task2<in P1, in P2, R> : Task<R> {
+  public fun start(
+    argument1: P1,
+    argument2: P2,
+    scheduled: StartScheduled = StartScheduled.Eagerly
+  ): Job
+}
 
 /**
  * Задача с тремя входными параметрами , выполняемая в рамках [ReactiveModel].
  * Функция [start] используется для запуска/повторного запуска данной задачи.
  * За ходом её выполнения можно следить используя поля объекта [jobFlow]
  */
-public class Task3<in P1, in P2, in P3, R>(
-  override val jobFlow: JobFlow<R>,
-  public val start: (P1, P2, P3) -> Job,
-) : Task<R>
+public interface Task3<in P1, in P2, in P3, R> : Task<R> {
+  public fun start(
+    argument1: P1,
+    argument2: P2,
+    argument3: P3,
+    scheduled: StartScheduled = StartScheduled.Eagerly
+  ): Job
+}
