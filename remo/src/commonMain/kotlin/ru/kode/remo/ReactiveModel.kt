@@ -118,7 +118,7 @@ public open class ReactiveModel(
   ): Task1<P1, R> {
     return object : Task1<P1, R> {
       override fun start(argument: P1, scheduled: StartScheduled): Job {
-        return context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(argument) }
+        return context.executeInModelScope(scheduled = scheduled) { body(argument) }
       }
 
       override val jobFlow: JobFlow<R> = context
@@ -134,7 +134,7 @@ public open class ReactiveModel(
   ): Task2<P1, P2, R> {
     return object : Task2<P1, P2, R> {
       override fun start(argument1: P1, argument2: P2, scheduled: StartScheduled): Job {
-        return context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(argument1, argument2) }
+        return context.executeInModelScope(scheduled = scheduled) { body(argument1, argument2) }
       }
 
       override val jobFlow: JobFlow<R> = context
@@ -150,7 +150,7 @@ public open class ReactiveModel(
   ): Task3<P1, P2, P3, R> {
     return object : Task3<P1, P2, P3, R> {
       override fun start(argument1: P1, argument2: P2, argument3: P3, scheduled: StartScheduled): Job {
-        return context.executeInModelScope(scheduled = StartScheduled.Eagerly) { body(argument1, argument2, argument3) }
+        return context.executeInModelScope(scheduled = scheduled) { body(argument1, argument2, argument3) }
       }
 
       override val jobFlow: JobFlow<R> = context
