@@ -6,6 +6,7 @@ import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -375,6 +376,37 @@ class ReactiveModelTest : ShouldSpec({
       awaitItem() shouldBe JobState.Idle
       awaitItem() shouldBe JobState.Running
       awaitItem() shouldBe JobState.Idle
+    }
+  }
+
+  should("emit an uncaught error if started twice with the default queueing strategy") {
+    val sut = object : ReactiveModel() {
+      val taskX = task { ->
+        delay(3000)
+      }
+    }.also { it.start(testScope) }
+
+    sut.taskX.start()
+    sut.taskX.start()
+
+    sut.uncaughtExceptions.test {
+      awaitItem().message shouldContain "already executing"
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  should("not emit an uncaught error if started twice with the skipping queueing strategy") {
+    val sut = object : ReactiveModel() {
+      val taskX = task { ->
+        delay(3000)
+      }
+    }.also { it.start(testScope) }
+
+    sut.taskX.start()
+    sut.taskX.start(queueingStrategy = QueueingStrategy.SkipNew)
+
+    sut.uncaughtExceptions.test {
+      ensureAllEventsConsumed()
     }
   }
 })

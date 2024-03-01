@@ -35,7 +35,7 @@ public class WatchContext<R>(
   private val _results = MutableSharedFlow<Result<R, Throwable>?>(replay = 1, extraBufferCapacity = 12)
 
   @Suppress("TooGenericExceptionCaught") // intentionally catching all exceptions to wrap them in Result
-  private suspend fun execute(scheduled: StartScheduled, body: suspend () -> R) {
+  private suspend fun execute(scheduled: StartScheduled, queueingStrategy: QueueingStrategy, body: suspend () -> R) {
     if (scheduled is StartScheduled.Lazily) {
       while (_results.subscriptionCount.value < scheduled.minResultsSubscribers ||
         _state.subscriptionCount.value < scheduled.minStateSubscribers
@@ -44,7 +44,10 @@ public class WatchContext<R>(
       }
     }
     if (_state.value == JobState.Running) {
-      error("$name is already executing some job")
+      when (queueingStrategy) {
+        QueueingStrategy.SkipNew -> return
+        QueueingStrategy.Disallow -> error("$name is already executing some job")
+      }
     }
     _state.value = JobState.Running
     try {
@@ -57,8 +60,13 @@ public class WatchContext<R>(
     }
   }
 
-  public fun executeIn(scope: CoroutineScope, started: StartScheduled, body: suspend () -> R): Job {
-    return scope.launch(block = { execute(started, body) })
+  public fun executeIn(
+    scope: CoroutineScope,
+    started: StartScheduled,
+    queueingStrategy: QueueingStrategy,
+    body: suspend () -> R
+  ): Job {
+    return scope.launch(block = { execute(started, queueingStrategy, body) })
   }
 
   override val state: Flow<JobState> = _state
@@ -93,5 +101,21 @@ public sealed class StartScheduled {
   /**
    * Execution starts immediately without waiting for any subscribers to appear
    */
-  public object Eagerly : StartScheduled()
+  public data object Eagerly : StartScheduled()
+}
+
+/**
+ * Controls how a Task/WatchContext behave when some job is already being executed and the new one is posted for
+ * execution (for example using `Task.start()` method).
+ */
+public enum class QueueingStrategy {
+  /**
+   * Newly posted job will be skipped and will not be executed, a current job will continue execution
+   */
+  SkipNew,
+
+  /**
+   * Newly posted job will not be executed and exception to indicate a conflict will be thrown
+   */
+  Disallow
 }

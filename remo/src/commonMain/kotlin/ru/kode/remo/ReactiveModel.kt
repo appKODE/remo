@@ -89,8 +89,12 @@ public open class ReactiveModel(
   /**
    * Запускает [body] внутри [scope] модели
    */
-  protected fun <R> WatchContext<R>.executeInModelScope(scheduled: StartScheduled, body: suspend () -> R): Job {
-    return this.executeIn(scope, scheduled, body)
+  protected fun <R> WatchContext<R>.executeInModelScope(
+    scheduled: StartScheduled,
+    queueingStrategy: QueueingStrategy,
+    body: suspend () -> R
+  ): Job {
+    return this.executeIn(scope, scheduled, queueingStrategy, body)
   }
 
   /**
@@ -101,8 +105,8 @@ public open class ReactiveModel(
     body: suspend () -> R,
   ): Task0<R> {
     return object : Task0<R> {
-      override fun start(scheduled: StartScheduled): Job {
-        return context.executeInModelScope(scheduled, body)
+      override fun start(scheduled: StartScheduled, queueingStrategy: QueueingStrategy): Job {
+        return context.executeInModelScope(scheduled, queueingStrategy, body)
       }
 
       override val jobFlow: JobFlow<R> = context
@@ -117,8 +121,8 @@ public open class ReactiveModel(
     body: suspend (P1) -> R,
   ): Task1<P1, R> {
     return object : Task1<P1, R> {
-      override fun start(argument: P1, scheduled: StartScheduled): Job {
-        return context.executeInModelScope(scheduled = scheduled) { body(argument) }
+      override fun start(argument: P1, scheduled: StartScheduled, queueingStrategy: QueueingStrategy): Job {
+        return context.executeInModelScope(scheduled, queueingStrategy) { body(argument) }
       }
 
       override val jobFlow: JobFlow<R> = context
@@ -133,8 +137,13 @@ public open class ReactiveModel(
     body: suspend (P1, P2) -> R,
   ): Task2<P1, P2, R> {
     return object : Task2<P1, P2, R> {
-      override fun start(argument1: P1, argument2: P2, scheduled: StartScheduled): Job {
-        return context.executeInModelScope(scheduled = scheduled) { body(argument1, argument2) }
+      override fun start(
+        argument1: P1,
+        argument2: P2,
+        scheduled: StartScheduled,
+        queueingStrategy: QueueingStrategy
+      ): Job {
+        return context.executeInModelScope(scheduled, queueingStrategy) { body(argument1, argument2) }
       }
 
       override val jobFlow: JobFlow<R> = context
@@ -149,40 +158,14 @@ public open class ReactiveModel(
     body: suspend (P1, P2, P3) -> R,
   ): Task3<P1, P2, P3, R> {
     return object : Task3<P1, P2, P3, R> {
-      override fun start(argument1: P1, argument2: P2, argument3: P3, scheduled: StartScheduled): Job {
-        return context.executeInModelScope(scheduled = scheduled) { body(argument1, argument2, argument3) }
-      }
-
-      override val jobFlow: JobFlow<R> = context
-    }
-  }
-
-  /**
-   * Создаёт [Task] без входных параметров. При вызове [Task0.start], переданный [body] будет выполнен в [context].
-   *
-   * Это хелпер функция, являющаяся копией [taskIn] с 0-аргументами, добавленная
-   * из-за синтаксического перфекционизма, потому что котлин не умеет различать overloads `() -> R` и `(P) -> R`.
-   *
-   * Варианты равнозначны:
-   *
-   * ```
-   * val fetch = taskIn(WorkContext()) { ->
-   * }
-   *
-   * val fetch = task<Unit>(WorkContext()) {
-   * }
-   *
-   * val fetch = task0In(WorkContext()) {
-   * }
-   * ```
-   */
-  protected fun <R> task0In(
-    context: WatchContext<R>,
-    body: suspend () -> R,
-  ): Task0<R> {
-    return object : Task0<R> {
-      override fun start(scheduled: StartScheduled): Job {
-        return context.executeInModelScope(scheduled, body)
+      override fun start(
+        argument1: P1,
+        argument2: P2,
+        argument3: P3,
+        scheduled: StartScheduled,
+        queueingStrategy: QueueingStrategy
+      ): Job {
+        return context.executeInModelScope(scheduled, queueingStrategy) { body(argument1, argument2, argument3) }
       }
 
       override val jobFlow: JobFlow<R> = context
@@ -204,7 +187,7 @@ public open class ReactiveModel(
     errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend () -> R,
   ): Task0<R> {
-    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper), body)
+    return taskIn(WatchContext(createDefaultTaskWatchContextName(name), errorMapper ?: this.errorMapper), body)
   }
 
   /**
@@ -222,7 +205,9 @@ public open class ReactiveModel(
     errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend (P1) -> R,
   ): Task1<P1, R> {
-    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper)) { p1 -> body(p1) }
+    return taskIn(WatchContext(createDefaultTaskWatchContextName(name), errorMapper ?: this.errorMapper)) { p1 ->
+      body(p1)
+    }
   }
 
   /**
@@ -240,7 +225,9 @@ public open class ReactiveModel(
     errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend (P1, P2) -> R,
   ): Task2<P1, P2, R> {
-    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper)) { p1, p2 -> body(p1, p2) }
+    return taskIn(WatchContext(createDefaultTaskWatchContextName(name), errorMapper ?: this.errorMapper)) { p1, p2 ->
+      body(p1, p2)
+    }
   }
 
   /**
@@ -258,48 +245,20 @@ public open class ReactiveModel(
     errorMapper: ((Throwable) -> Throwable)? = null,
     body: suspend (P1, P2, P3) -> R,
   ): Task3<P1, P2, P3, R> {
-    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper)) { p1, p2, p3 -> body(p1, p2, p3) }
+    return taskIn(
+      WatchContext(createDefaultTaskWatchContextName(name), errorMapper ?: this.errorMapper)
+    ) { p1, p2, p3 -> body(p1, p2, p3) }
   }
 
-  /**
-   * Создаёт [Task] без входных параметров. При вызове [Task0.start], переданный [body] будет выполнен в
-   * заранее созданном [WatchContext] с именем [name]
-   *
-   * Это хелпер функция, являющаяся копией [task] с 0-аргументами, добавленная
-   * из-за синтаксического перфекционизма, потому что котлин не умеет различать overloads `() -> R` и `(P) -> R`.
-   *
-   * Варианты равнозначны:
-   *
-   * ```
-   * val fetch = task { ->
-   * }
-   *
-   * val fetch = task<Unit> {
-   * }
-   *
-   * val fetch = task0 {
-   * }
-   * ```
-   *
-   * @param name имя задачи, описательное
-   * @param errorMapper Если указан, будет использоваться для маппинга ошибок перед
-   * их emit-ом в стримы результатов/ошибок. Является более приоритетным, чем "глобальный" маппер, указанный в
-   * конструкторе [ReactiveModel]
-   * @param body выполняемое тело задачи
-   */
-  protected fun <R> task0(
-    name: String = createTaskName(),
-    errorMapper: ((Throwable) -> Throwable)? = null,
-    body: suspend () -> R,
-  ): Task0<R> {
-    return taskIn(WatchContext(name, errorMapper ?: this.errorMapper), body)
+  internal fun createTaskName(): String {
+    return "task#$NEXT_TASK_ID".also { NEXT_TASK_ID += 1 }
+  }
+
+  private fun createDefaultTaskWatchContextName(taskName: String): String {
+    return if (this::class.simpleName != null) "${this::class.simpleName}-$taskName" else "<anonymous object>-$taskName"
   }
 
   public companion object {
-    internal fun createTaskName(): String {
-      return "task#$NEXT_TASK_ID".also { NEXT_TASK_ID += 1 }
-    }
-
     internal fun createWatchContextName(): String {
       return "watch_context#$NEXT_WATCH_CONTEXT_ID".also { NEXT_WATCH_CONTEXT_ID += 1 }
     }
