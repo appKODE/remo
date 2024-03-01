@@ -9,5 +9,3 @@ pluginManagement {
 }
 
 include("remo")
-
-enableFeaturePreview("VERSION_CATALOGS")

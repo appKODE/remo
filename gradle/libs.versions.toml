@@ -1,12 +1,12 @@
 [versions]
-koTest = "5.0.2"
+koTest = "5.8.0"
 ktlint = "0.43.2"
-coroutines = "1.6.0"
-kotlin = "1.6.10"
+coroutines = "1.7.3"
+kotlin = "1.9.22"
 spotless = "6.0.5"
 dokka = "1.5.31"
 kotlinResult = "1.1.16"
-turbine = "0.7.0"
+turbine = "1.0.0"
 
 [libraries]
 kotest-junit-runner = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "koTest" }
