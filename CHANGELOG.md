@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 - 2024-03-01
+* Add `QueueingStrategy` parameter which lets the user configure behaviour of the `ReactiveModel` when `WatchContext` is already executing a task. The only available option (apart from throwing) for now is the ability to skip the new task
+* Improve documentation
+* Remove `task0`. It wasn't used and is actually a syntactic sugar
+
 ## 1.1.1 - 2022-11-27
 * Исправлена ошибка с использованием `scheduled`-параметра в Task1/Task2
 
