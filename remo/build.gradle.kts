@@ -5,54 +5,44 @@ plugins {
 }
 
 kotlin {
-  targets {
-    jvm {
-      compilations.all {
-        kotlinOptions {
-          jvmTarget = "1.8"
-          moduleName = "remo-library"
-        }
+  jvm {
+    compilations.all {
+      kotlinOptions {
+        jvmTarget = "1.8"
+        moduleName = "remo-library"
       }
     }
-    ios()
-    iosSimulatorArm64()
-    macosArm64()
-    macosX64()
   }
+  iosX64()
+  iosArm64()
+  iosSimulatorArm64()
+  macosX64()
+  macosArm64()
 
   sourceSets {
-    val commonMain by getting {
+    commonMain {
       dependencies {
         implementation(libs.bundles.coroutines)
         api(libs.kotlinResult)
       }
     }
 
-    val commonTest by getting {
+    commonTest {
       dependencies {
         implementation(libs.bundles.koTestCommon)
         implementation(libs.turbine)
       }
     }
 
-    val jvmMain by getting {
+    jvmMain {
       dependencies {
         implementation(kotlin("stdlib-jdk8"))
       }
     }
 
-    val jvmTest by getting {
+    jvmTest {
       dependencies {
         implementation(libs.bundles.koTestJvm)
-      }
-    }
-
-    val iosMain by getting {
-      dependencies {
-      }
-    }
-    val iosTest by getting {
-      dependencies {
       }
     }
   }

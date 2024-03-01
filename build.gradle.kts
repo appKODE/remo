@@ -44,8 +44,6 @@ subprojects {
             artifact(javadocJar.get())
           }
         }
-
-        ios()
       }
     }
 
