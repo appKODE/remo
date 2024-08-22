@@ -34,9 +34,9 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("not conflate results") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val foo = task { -> 33 }
-    }.also { it.start(testScope) }
+    }
 
     sut.foo.jobFlow.successResults(replayLast = true).test {
       sut.foo.start()
@@ -48,9 +48,9 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("not conflate errors") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val foo = task<Unit> { throw ExceptionWithEquals("i am an error") }
-    }.also { it.start(testScope) }
+    }
 
     sut.foo.jobFlow.errors(replayLast = true).test {
       sut.foo.start()
@@ -62,9 +62,9 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("late subscriber receives the last result") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val foo = task { i: Int -> i }
-    }.also { it.start(testScope) }
+    }
 
     sut.foo.start(33)
     sut.foo.jobFlow.successResults(replayLast = true).first() // await result
@@ -81,7 +81,7 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("emit an uncaught error") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       fun produceError1() {
         scope.launch {
           throw RuntimeException("error1")
@@ -92,7 +92,7 @@ class ReactiveModelTest : ShouldSpec({
           throw RuntimeException("error2")
         }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.uncaughtExceptions.test {
       sut.produceError1()
@@ -104,7 +104,7 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("emit last uncaught error on subscription") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       fun produceError1() {
         scope.launch {
           throw RuntimeException("error1")
@@ -115,7 +115,7 @@ class ReactiveModelTest : ShouldSpec({
           throw RuntimeException("error2")
         }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.uncaughtExceptions.test {
       sut.produceError1()
@@ -129,11 +129,11 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("emit result to existing subscribers when replayLast is false") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val task = task { ->
         "hello"
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.jobFlow.results(replayLast = false).test {
       sut.task.start()
@@ -142,11 +142,11 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("emit success to existing subscribers when replayLast is false") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val task = task { ->
         "hello"
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.jobFlow.successResults(replayLast = false).test {
       sut.task.start()
@@ -155,11 +155,11 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("emit error to existing subscribers when replayLast is false") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val task = task { ->
         throw RuntimeException("hello")
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.jobFlow.errors(replayLast = false).test {
       sut.task.start()
@@ -168,11 +168,11 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("emit error to when replayLast is false and emit after construct before subscribe") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val task = task { ->
         throw RuntimeException("hello")
       }
-    }.also { it.start(testScope) }
+    }
 
     val flow = sut.task.jobFlow.errors(replayLast = false)
 
@@ -186,14 +186,13 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("cancel model when parentScope is cancelled") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val task = task { ->
         delay(10_000)
       }
     }
-    val job = sut.start(testScope)
 
-    sut.task.start()
+    val job = sut.task.start()
 
     testScope.cancel()
     eventually(duration = 3.seconds) {
@@ -204,11 +203,11 @@ class ReactiveModelTest : ShouldSpec({
 
   should("use global custom exception mapper") {
     val mapper = { e: Throwable -> if (e is CancellationException) throw e else RuntimeException(e.message + "adj") }
-    val sut = object : ReactiveModel(errorMapper = mapper) {
+    val sut = object : ReactiveModel(testScope, errorMapper = mapper) {
       val task = task { ->
         error("hello")
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.jobFlow.errors(replayLast = false).test {
       sut.task.start()
@@ -218,11 +217,11 @@ class ReactiveModelTest : ShouldSpec({
 
   should("allow local error mapper override the global one") {
     val mapper = { e: Throwable -> if (e is CancellationException) throw e else RuntimeException(e.message + "adj") }
-    val sut = object : ReactiveModel(errorMapper = mapper) {
+    val sut = object : ReactiveModel(testScope, errorMapper = mapper) {
       val task = task(errorMapper = { RuntimeException(it.message + "jda") }) { ->
         error("hello")
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.jobFlow.errors(replayLast = false).test {
       sut.task.start()
@@ -231,7 +230,7 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("cancel task on Job cancel") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val flow = MutableStateFlow(0)
       val task = task { ->
         while (true) {
@@ -240,7 +239,7 @@ class ReactiveModelTest : ShouldSpec({
           yield()
         }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.flow.test {
       val job = sut.task.start()
@@ -256,12 +255,12 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("subscribe task0 eagerly when requested") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val flow = MutableStateFlow(0)
       val task = task { ->
         flow.update { it + 1 }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.start(scheduled = StartScheduled.Eagerly)
     delay(200)
@@ -280,12 +279,12 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("subscribe task0 lazily when requested with min results subscribers") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val flow = MutableStateFlow(0)
       val task = task { ->
         flow.update { it + 1 }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.start(scheduled = StartScheduled.Lazily(minResultsSubscribers = 1, minStateSubscribers = 0))
     delay(200)
@@ -298,12 +297,12 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("subscribe task0 lazily when requested with min state subscribers") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val flow = MutableStateFlow(0)
       val task = task { ->
         flow.update { it + 1 }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.start(scheduled = StartScheduled.Lazily(minResultsSubscribers = 0, minStateSubscribers = 1))
     delay(200)
@@ -318,12 +317,12 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("subscribe task1 eagerly when requested") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val flow = MutableStateFlow(0)
-      val task = task { arg: Int ->
+      val task = task { _: Int ->
         flow.update { it + 1 }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.start(scheduled = StartScheduled.Eagerly, argument = 42)
     delay(200)
@@ -342,12 +341,12 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("subscribe task1 lazily when requested with min results subscribers") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val flow = MutableStateFlow(0)
-      val task = task { arg: Int ->
+      val task = task { _: Int ->
         flow.update { it + 1 }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.start(scheduled = StartScheduled.Lazily(minResultsSubscribers = 1, minStateSubscribers = 0), argument = 42)
     delay(200)
@@ -360,12 +359,12 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("subscribe task1 lazily when requested with min state subscribers") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val flow = MutableStateFlow(0)
-      val task = task { arg: Int ->
+      val task = task { _: Int ->
         flow.update { it + 1 }
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.task.start(scheduled = StartScheduled.Lazily(minResultsSubscribers = 0, minStateSubscribers = 1), argument = 42)
     delay(200)
@@ -380,11 +379,11 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("emit an uncaught error if started twice with the default queueing strategy") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val taskX = task { ->
         delay(3000)
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.taskX.start()
     sut.taskX.start()
@@ -396,11 +395,11 @@ class ReactiveModelTest : ShouldSpec({
   }
 
   should("not emit an uncaught error if started twice with the skipping queueing strategy") {
-    val sut = object : ReactiveModel() {
+    val sut = object : ReactiveModel(testScope) {
       val taskX = task { ->
         delay(3000)
       }
-    }.also { it.start(testScope) }
+    }
 
     sut.taskX.start()
     sut.taskX.start(queueingStrategy = QueueingStrategy.SkipNew)
@@ -418,9 +417,7 @@ private class ExceptionWithEquals(val msg: String) : Throwable(msg) {
 
     other as ExceptionWithEquals
 
-    if (msg != other.msg) return false
-
-    return true
+    return msg == other.msg
   }
 
   override fun hashCode(): Int {

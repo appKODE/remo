@@ -3,15 +3,12 @@
  */
 package ru.kode.remo
 
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlin.native.concurrent.ThreadLocal
 
@@ -26,9 +23,11 @@ import kotlin.native.concurrent.ThreadLocal
  */
 public open class ReactiveModel(
   /**
-   * Dispatcher, который по умолчанию используется для выполнения Job/Task
+   * Scope на основе которого будут работать дочерние таски.
+   *
+   * Он будет расширен дополнительными CoroutineContext и доступен наследникам в через свойство [scope]
    */
-  private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+  scope: CoroutineScope,
   /**
    * Если указан, будет использоваться для маппинга ошибок **всех тасков**
    * перед их emit-ом в стримы результатов/ошибок.
@@ -59,31 +58,10 @@ public open class ReactiveModel(
     }
   }
 
-  private var _scope: CoroutineScope? = null
-  protected val scope: CoroutineScope
-    get() {
-      return _scope ?: error("scope not available. Possible reason: start() was not called")
-    }
-  protected val scopeSafe: CoroutineScope? get() = _scope
+  private var _scope: CoroutineScope = CoroutineScope(SupervisorJob(scope.coroutineContext.job) + handler)
+  protected val scope: CoroutineScope = _scope
 
-  /**
-   * Выполняет старт и инициализацию. Возвращает `Job`, вызвав `cancel()` у которого можно завершить работу модели.
-   * Если был передан [parentScope], то внутренний CoroutineScope модели станет дочерним
-   * по отношению к [parentScope] и `parentScope.cancel()` соответственно завершит работу всей модели.
-   */
-  public fun start(parentScope: CoroutineScope? = null): Job {
-    if (_scope?.isActive == true) {
-      error("model \"${this::class.simpleName}\" is already started")
-    }
-    _scope = CoroutineScope(SupervisorJob(parentScope?.coroutineContext?.job) + handler + dispatcher)
-    onPostStart()
-    return _scope!!.coroutineContext[Job] ?: error("no job in model scope")
-  }
-
-  /**
-   * Будет вызвана сразу после успешного [start] модели.
-   * В этой функции уже можно использовать [scope] и стартовать корутины, job-ы.
-   */
+  @Deprecated("move body of onPostStart() function to the class constructor or init block")
   protected open fun onPostStart(): Unit = Unit
 
   /**
