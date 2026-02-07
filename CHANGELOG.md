@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 - 2026-02-07
+* Update dependencies: kotlin (2.2.21), dokka (2.1.0), kotlinResult (2.1.0), turbine (1.2.1)
+* Migrate to VanniktechMavenPublish plugin for publications
+* Update Gradle to 9.3.0
+
 ## 1.2.0 - 2024-03-01
 * Add `QueueingStrategy` parameter which lets the user configure behaviour of the `ReactiveModel` when `WatchContext` is already executing a task. The only available option (apart from throwing) for now is the ability to skip the new task
 * Improve documentation

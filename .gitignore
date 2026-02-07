@@ -16,3 +16,4 @@ build/
 !/.idea/codeStyles/
 !/.idea/dictionaries/
 /local.properties
+.kotlin
