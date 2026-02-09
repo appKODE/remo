@@ -1,12 +1,14 @@
 [versions]
+remoVersion = "1.3.0"
 koTest = "5.8.0"
 ktlint = "0.43.2"
 coroutines = "1.7.3"
-kotlin = "1.9.22"
+kotlin = "2.2.21"
 spotless = "6.0.5"
-dokka = "1.9.10"
-kotlinResult = "1.1.16"
-turbine = "1.0.0"
+dokka = "2.1.0"
+kotlinResult = "2.1.0"
+turbine = "1.2.1"
+vanniktechMavenPublish = "0.36.0"
 
 [libraries]
 kotest-junit-runner = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "koTest" }
@@ -27,3 +29,4 @@ coroutines = [ "coroutines-core" ]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin"}
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktechMavenPublish" }
