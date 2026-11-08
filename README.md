@@ -1,3 +1,14 @@
+> [!WARNING]
+> **Deprecated.** remo is no longer developed. Use [reactive-tasks](https://github.com/appKODE/reactive-tasks)
+> (`ru.kode:reactive-tasks`), see [Migrating from remo](https://github.com/appKODE/reactive-tasks#migrating-from-remo).
+> The repository will be archived once the apps have migrated.
+>
+> **Устарело.** remo больше не развивается, используйте [reactive-tasks](https://github.com/appKODE/reactive-tasks),
+> гайд по переходу: [Migrating from remo](https://github.com/appKODE/reactive-tasks#migrating-from-remo).
+>
+> Versions 9.x (`ru.kode:remo:9.0.1`, `ru.kode.android:remo:9.1.0`) were built from the
+> [`dz-remove-start-method`](https://github.com/appKODE/remo/tree/dz-remove-start-method) branch, not from `master`.
+
 # ReactiveModel
 
 Класс `ReactiveModel` предоставляет контекст для асинхронного запуска задач (jobs) с возможностью наблюдения за
